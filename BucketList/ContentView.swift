@@ -5,26 +5,44 @@
 //  Created by Ali Soner Inceoglu on 07.12.25.
 //
 
+import LocalAuthentication
 import SwiftUI
 
 struct ContentView: View {
+    @State private var isUnlocked = false
+    
     var body: some View {
         VStack {
-            Button("Read and Write") {
-                let data = Data("Hello, World!".utf8)
-                let url = URL.applicationDirectory.appending(path: "document.txt")
-                
-                do {
-                    try data.write(to: url, options: [.atomic, .completeFileProtection])
-                    
-                    let readData = try String(contentsOf: url, encoding: .utf8)
-                    print(readData)
-                } catch {
-                    print(error.localizedDescription)
-                }
+            if isUnlocked {
+                Text("Unlocked")
+            } else {
+                Text("Locked")
             }
         }
-        .padding()
+        .onAppear(perform: authenticate)
+    }
+    
+    func authenticate() {
+        Task {
+            let context = LAContext()
+            var error: NSError?
+            
+            guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+                // no biometrics
+                return
+            }
+                        
+            do {
+               let success = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "We need to unlock your data.")
+               if success {
+                   // Authentication successful
+                   isUnlocked = true
+               }
+             } catch {
+                 // Authentication failed
+             }
+            
+        }
     }
 }
 
